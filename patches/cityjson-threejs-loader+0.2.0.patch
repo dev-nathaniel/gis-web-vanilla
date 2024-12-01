@@ -1,0 +1,438 @@
+diff --git a/node_modules/cityjson-threejs-loader/src/parsers/CityJSONWorkerParser.js b/node_modules/cityjson-threejs-loader/src/parsers/CityJSONWorkerParser.js
+index 24db91b..d183de4 100644
+--- a/node_modules/cityjson-threejs-loader/src/parsers/CityJSONWorkerParser.js
++++ b/node_modules/cityjson-threejs-loader/src/parsers/CityJSONWorkerParser.js
+@@ -77,7 +77,8 @@ export class CityJSONWorkerParser {
+ 
+ 		// Sets the web worker that will parse all normal (ie non-instanced)
+ 		// geometries
+-		const worker = new Worker( "./helpers/ParserWorker.js" );
++		const url = new URL("./helpers/ParserWorker.js", import.meta.url)
++		const worker = new Worker( url );
+ 		const m = this.matrix;
+ 		const onChunkLoad = this.onChunkLoad;
+ 		const onComplete = this.onComplete;
+diff --git a/node_modules/cityjson-threejs-loader/src/parsers/CityObjectParser.js b/node_modules/cityjson-threejs-loader/src/parsers/CityObjectParser.js
+index f00cf8f..cb1a992 100644
+--- a/node_modules/cityjson-threejs-loader/src/parsers/CityObjectParser.js
++++ b/node_modules/cityjson-threejs-loader/src/parsers/CityObjectParser.js
+@@ -1,9 +1,10 @@
+ import {
+-	Face3,
+-	Geometry,
++	// Face3,
++	BufferGeometry,
+ 	Mesh,
+ 	MeshLambertMaterial,
+ 	Vector3 } from 'three';
++// import {Face} from 'three/examples/js/math/ConvexHull'
+ import earcut from 'earcut';
+ 
+ export class CityObjectParser {
+@@ -38,255 +39,255 @@ export class CityObjectParser {
+ 
+ 	}
+ 
+-	parse( data, scene ) {
++	// parse( data, scene ) {
+ 
+-		for ( const objectId in data.CityObjects ) {
++	// 	for ( const objectId in data.CityObjects ) {
+ 
+-			const geom = this.parseObject( objectId, data );
++	// 		const geom = this.parseObject( objectId, data );
+ 
+-			const objectType = data.CityObjects[ objectId ].type;
++	// 		const objectType = data.CityObjects[ objectId ].type;
+ 
+-			const material = new MeshLambertMaterial();
+-			material.color.setHex( this.objectColors[ objectType ] );
++	// 		const material = new MeshLambertMaterial();
++	// 		material.color.setHex( this.objectColors[ objectType ] );
+ 
+-			const mesh = new Mesh( geom, material );
+-			mesh.name = objectId;
+-			mesh.castShadow = true;
+-			mesh.receiveShadow = true;
++	// 		const mesh = new Mesh( geom, material );
++	// 		mesh.name = objectId;
++	// 		mesh.castShadow = true;
++	// 		mesh.receiveShadow = true;
+ 
+-			scene.add( mesh );
++	// 		scene.add( mesh );
+ 
+-		}
++	// 	}
+ 
+-	}
++	// }
+ 
+-	parseObject( objectId, json ) {
++	// parseObject( objectId, json ) {
+ 
+-		const cityObject = json.CityObjects[ objectId ];
++	// 	const cityObject = json.CityObjects[ objectId ];
+ 
+-		if ( ! ( cityObject.geometry &&
+-		  cityObject.geometry.length > 0 ) ) {
++	// 	if ( ! ( cityObject.geometry &&
++	// 	  cityObject.geometry.length > 0 ) ) {
+ 
+-		  return;
++	// 	  return;
+ 
+-		}
++	// 	}
+ 
+-		const geom = new Geometry();
+-		let vertices = [];
++	// 	const geom = new BufferGeometry();
++	// 	let vertices = [];
+ 
+-		for ( let geom_i = 0; geom_i < cityObject.geometry.length; geom_i ++ ) {
++	// 	for ( let geom_i = 0; geom_i < cityObject.geometry.length; geom_i ++ ) {
+ 
+-		  //each geometrytype must be handled different
+-		  const geomType = cityObject.geometry[ geom_i ].type;
++	// 	  //each geometrytype must be handled different
++	// 	  const geomType = cityObject.geometry[ geom_i ].type;
+ 
+-		  if ( geomType == "Solid" ) {
++	// 	  if ( geomType == "Solid" ) {
+ 
+-				const shells = cityObject.geometry[ geom_i ].boundaries;
++	// 			const shells = cityObject.geometry[ geom_i ].boundaries;
+ 
+-				for ( let i = 0; i < shells.length; i ++ ) {
++	// 			for ( let i = 0; i < shells.length; i ++ ) {
+ 
+-					this.parseShell( geom, shells[ i ], vertices, json );
++	// 				this.parseShell( geom, shells[ i ], vertices, json );
+ 
+-				}
++	// 			}
+ 
+-			} else if ( geomType == "MultiSurface" || geomType == "CompositeSurface" ) {
++	// 		} else if ( geomType == "MultiSurface" || geomType == "CompositeSurface" ) {
+ 
+-				const surfaces = cityObject.geometry[ geom_i ].boundaries;
++	// 			const surfaces = cityObject.geometry[ geom_i ].boundaries;
+ 
+-				this.parseShell( geom, surfaces, vertices, json );
++	// 			this.parseShell( geom, surfaces, vertices, json );
+ 
+-			} else if ( geomType == "MultiSolid" || geomType == "CompositeSolid" ) {
++	// 		} else if ( geomType == "MultiSolid" || geomType == "CompositeSolid" ) {
+ 
+-				const solids = cityObject.geometry[ geom_i ].boundaries;
++	// 			const solids = cityObject.geometry[ geom_i ].boundaries;
+ 
+-				for ( let i = 0; i < solids.length; i ++ ) {
++	// 			for ( let i = 0; i < solids.length; i ++ ) {
+ 
+-					for ( let j = 0; j < solids[ i ].length; j ++ ) {
++	// 				for ( let j = 0; j < solids[ i ].length; j ++ ) {
+ 
+-						this.parseShell( geom, solids[ i ][ j ], vertices, json );
++	// 					this.parseShell( geom, solids[ i ][ j ], vertices, json );
+ 
+-					}
++	// 				}
+ 
+-				}
++	// 			}
+ 
+-			}
++	// 		}
+ 
+-		}
++	// 	}
+ 
+-		if ( this.matrix !== null ) {
++	// 	if ( this.matrix !== null ) {
+ 
+-			geom.applyMatrix4( this.matrix );
++	// 		geom.applyMatrix4( this.matrix );
+ 
+-		}
++	// 	}
+ 
+-		geom.computeFaceNormals();
++	// 	geom.computeFaceNormals();
+ 
+-		return geom;
++	// 	return geom;
+ 
+-	}
++	// }
+ 
+-	parseShell( geom, boundaries, vertices, json ) {
++	// parseShell( geom, boundaries, vertices, json ) {
+ 
+-		// Contains the boundary but with the right verticeId
+-		for ( let i = 0; i < boundaries.length; i ++ ) {
++	// 	// Contains the boundary but with the right verticeId
++	// 	for ( let i = 0; i < boundaries.length; i ++ ) {
+ 
+-			let boundary = [];
+-			let holes = [];
++	// 		let boundary = [];
++	// 		let holes = [];
+ 
+-			for ( let j = 0; j < boundaries[ i ].length; j ++ ) {
++	// 		for ( let j = 0; j < boundaries[ i ].length; j ++ ) {
+ 
+-				if ( boundary.length > 0 ) {
++	// 			if ( boundary.length > 0 ) {
+ 
+-					holes.push( boundary.length );
++	// 				holes.push( boundary.length );
+ 
+-				}
++	// 			}
+ 
+-				const new_boundary = this.extractLocalIndices( geom, boundaries[ i ][ j ], vertices, json );
+-				boundary.push( ...new_boundary );
++	// 			const new_boundary = this.extractLocalIndices( geom, boundaries[ i ][ j ], vertices, json );
++	// 			boundary.push( ...new_boundary );
+ 
+-			}
++	// 		}
+ 
+-			if ( boundary.length == 3 ) {
++	// 		if ( boundary.length == 3 ) {
+ 
+-				geom.faces.push( new Face3( boundary[ 0 ], boundary[ 1 ], boundary[ 2 ] ) );
++	// 			geom.faces.push( new Face( boundary[ 0 ], boundary[ 1 ], boundary[ 2 ] ) );
+ 
+-			} else if ( boundary.length > 3 ) {
++	// 		} else if ( boundary.length > 3 ) {
+ 
+-				//create list of points
+-				let pList = [];
+-				for ( let k = 0; k < boundary.length; k ++ ) {
++	// 			//create list of points
++	// 			let pList = [];
++	// 			for ( let k = 0; k < boundary.length; k ++ ) {
+ 
+-					pList.push( {
+-						x: json.vertices[ vertices[ boundary[ k ] ] ][ 0 ],
+-						y: json.vertices[ vertices[ boundary[ k ] ] ][ 1 ],
+-						z: json.vertices[ vertices[ boundary[ k ] ] ][ 2 ]
+-					} );
++	// 				pList.push( {
++	// 					x: json.vertices[ vertices[ boundary[ k ] ] ][ 0 ],
++	// 					y: json.vertices[ vertices[ boundary[ k ] ] ][ 1 ],
++	// 					z: json.vertices[ vertices[ boundary[ k ] ] ][ 2 ]
++	// 				} );
+ 
+-				}
++	// 			}
+ 
+-				//get normal of these points
+-				const normal = this.get_normal_newell( pList );
++	// 			//get normal of these points
++	// 			const normal = this.get_normal_newell( pList );
+ 
+-				//convert to 2d (for triangulation)
+-				let pv = [];
+-				for ( let k = 0; k < pList.length; k ++ ) {
++	// 			//convert to 2d (for triangulation)
++	// 			let pv = [];
++	// 			for ( let k = 0; k < pList.length; k ++ ) {
+ 
+-					const re = this.to_2d( pList[ k ], normal );
+-					pv.push( re.x );
+-					pv.push( re.y );
++	// 				const re = this.to_2d( pList[ k ], normal );
++	// 				pv.push( re.x );
++	// 				pv.push( re.y );
+ 
+-				}
++	// 			}
+ 
+-				//triangulate
+-				const tr = earcut( pv, holes, 2 );
++	// 			//triangulate
++	// 			const tr = earcut( pv, holes, 2 );
+ 
+-				//create faces based on triangulation
+-				for ( let k = 0; k < tr.length; k += 3 ) {
++	// 			//create faces based on triangulation
++	// 			for ( let k = 0; k < tr.length; k += 3 ) {
+ 
+-					geom.faces.push(
+-						new Face3(
+-							boundary[ tr[ k ] ],
+-							boundary[ tr[ k + 1 ] ],
+-							boundary[ tr[ k + 2 ] ]
+-						)
+-					);
++	// 				geom.faces.push(
++	// 					new Face(
++	// 						boundary[ tr[ k ] ],
++	// 						boundary[ tr[ k + 1 ] ],
++	// 						boundary[ tr[ k + 2 ] ]
++	// 					)
++	// 				);
+ 
+-				}
++	// 			}
+ 
+-			}
++	// 		}
+ 
+-		}
++	// 	}
+ 
+-	}
++	// }
+ 
+-	extractLocalIndices( geom, boundary, indices, json ) {
++	// extractLocalIndices( geom, boundary, indices, json ) {
+ 
+-		let new_boundary = [];
++	// 	let new_boundary = [];
+ 
+-		for ( let j = 0; j < boundary.length; j ++ ) {
++	// 	for ( let j = 0; j < boundary.length; j ++ ) {
+ 
+-			//the original index from the json file
+-			const index = boundary[ j ];
++	// 		//the original index from the json file
++	// 		const index = boundary[ j ];
+ 
+-			//if this index is already there
+-			if ( indices.includes( index ) ) {
++	// 		//if this index is already there
++	// 		if ( indices.includes( index ) ) {
+ 
+-				const vertPos = indices.indexOf( index );
+-				new_boundary.push( vertPos );
++	// 			const vertPos = indices.indexOf( index );
++	// 			new_boundary.push( vertPos );
+ 
+-			} else {
++	// 		} else {
+ 
+-				// Add vertex to geometry
+-				const point = new Vector3(
+-					json.vertices[ index ][ 0 ],
+-					json.vertices[ index ][ 1 ],
+-					json.vertices[ index ][ 2 ]
+-				);
+-				geom.vertices.push( point );
++	// 			// Add vertex to geometry
++	// 			const point = new Vector3(
++	// 				json.vertices[ index ][ 0 ],
++	// 				json.vertices[ index ][ 1 ],
++	// 				json.vertices[ index ][ 2 ]
++	// 			);
++	// 			geom.vertices.push( point );
+ 
+-				new_boundary.push( indices.length );
+-				indices.push( index );
++	// 			new_boundary.push( indices.length );
++	// 			indices.push( index );
+ 
+-			}
++	// 		}
+ 
+-		}
++	// 	}
+ 
+-		return new_boundary;
++	// 	return new_boundary;
+ 
+-	}
++	// }
+ 
+-	get_normal_newell( indices ) {
++	// get_normal_newell( indices ) {
+ 
+-		// find normal with Newell's method
+-		let n = [ 0.0, 0.0, 0.0 ];
++	// 	// find normal with Newell's method
++	// 	let n = [ 0.0, 0.0, 0.0 ];
+ 
+-		for ( let i = 0; i < indices.length; i ++ ) {
++	// 	for ( let i = 0; i < indices.length; i ++ ) {
+ 
+-		  let nex = i + 1;
++	// 	  let nex = i + 1;
+ 
+-		  if ( nex == indices.length ) {
++	// 	  if ( nex == indices.length ) {
+ 
+-				nex = 0;
++	// 			nex = 0;
+ 
+-			}
++	// 		}
+ 
+-		  n[ 0 ] = n[ 0 ] + ( ( indices[ i ].y - indices[ nex ].y ) * ( indices[ i ].z + indices[ nex ].z ) );
+-		  n[ 1 ] = n[ 1 ] + ( ( indices[ i ].z - indices[ nex ].z ) * ( indices[ i ].x + indices[ nex ].x ) );
+-		  n[ 2 ] = n[ 2 ] + ( ( indices[ i ].x - indices[ nex ].x ) * ( indices[ i ].y + indices[ nex ].y ) );
++	// 	  n[ 0 ] = n[ 0 ] + ( ( indices[ i ].y - indices[ nex ].y ) * ( indices[ i ].z + indices[ nex ].z ) );
++	// 	  n[ 1 ] = n[ 1 ] + ( ( indices[ i ].z - indices[ nex ].z ) * ( indices[ i ].x + indices[ nex ].x ) );
++	// 	  n[ 2 ] = n[ 2 ] + ( ( indices[ i ].x - indices[ nex ].x ) * ( indices[ i ].y + indices[ nex ].y ) );
+ 
+-		}
++	// 	}
+ 
+-		const b = new Vector3( n[ 0 ], n[ 1 ], n[ 2 ] );
+-		return ( b.normalize() );
++	// 	const b = new Vector3( n[ 0 ], n[ 1 ], n[ 2 ] );
++	// 	return ( b.normalize() );
+ 
+-	}
++	// }
+ 
+-	to_2d( p, n ) {
++	// to_2d( p, n ) {
+ 
+-		p = new Vector3( p.x, p.y, p.z );
+-		const x3 = new Vector3( 1.1, 1.1, 1.1 );
+-		if ( x3.distanceTo( n ) < 0.01 ) {
++	// 	p = new Vector3( p.x, p.y, p.z );
++	// 	const x3 = new Vector3( 1.1, 1.1, 1.1 );
++	// 	if ( x3.distanceTo( n ) < 0.01 ) {
+ 
+-		  x3.add( new Vector3( 1.0, 2.0, 3.0 ) );
++	// 	  x3.add( new Vector3( 1.0, 2.0, 3.0 ) );
+ 
+-		}
++	// 	}
+ 
+-		let tmp = x3.dot( n );
+-		let tmp2 = n.clone();
+-		tmp2.multiplyScalar( tmp );
+-		x3.sub( tmp2 );
+-		x3.normalize();
++	// 	let tmp = x3.dot( n );
++	// 	let tmp2 = n.clone();
++	// 	tmp2.multiplyScalar( tmp );
++	// 	x3.sub( tmp2 );
++	// 	x3.normalize();
+ 
+-		let y3 = n.clone();
+-		y3.cross( x3 );
++	// 	let y3 = n.clone();
++	// 	y3.cross( x3 );
+ 
+-		let x = p.dot( x3 );
+-		let y = p.dot( y3 );
++	// 	let x = p.dot( x3 );
++	// 	let y = p.dot( y3 );
+ 
+-		const re = { x: x, y: y };
++	// 	const re = { x: x, y: y };
+ 
+-		return re;
++	// 	return re;
+ 
+-	}
++	// }
+ 
+ }
